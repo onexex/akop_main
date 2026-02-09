@@ -30,11 +30,11 @@ public function index()
     {
         try {
             // Aggregate counts by Barangay PCODE
-            $counts = Incident::join('barangays', 'incidents.address_id', '=', 'barangays.id')
-                ->select('barangays.code as pcode', DB::raw('count(*) as total'))
-                ->groupBy('barangays.code')
-                ->pluck('total', 'pcode');
-
+            // $counts = Incident::join('barangays', 'incidents.address_id', '=', 'barangays.id')
+            //     ->select('barangays.code as pcode', DB::raw('count(*) as total'))
+            //     ->groupBy('barangays.code')
+            //     ->pluck('total', 'pcode');
+            $counts = null;
             return response()->json([
                 'incident_counts' => $counts,
                 'total_national' => $counts->sum() // Vital for percentage calculation
