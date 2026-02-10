@@ -22,6 +22,8 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'last_login_lat',
+        'last_login_long',
     ];
 
     /**
@@ -47,6 +49,8 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'two_factor_confirmed_at' => 'datetime',
+              'last_login_lat' => 'float',
+        'last_login_long' => 'float',
         ];
     }
 }
