@@ -28,17 +28,17 @@ const mainNavItems: NavItem[] = [
         href: 'dashboard',
         icon: LayoutGrid,
     },
-     {
-        title: 'Incoming Alerts',
-        href: '/sms',
-        icon: MessageSquare,
-    },
+    //  {
+    //     title: 'Incoming Alerts',
+    //     href: '/sms',
+    //     icon: MessageSquare,
+    // },
 
-     {
-        title: 'Processed Messages',
-        href: '/processed-messages',
-        icon: MessageSquare,
-    },
+    //  {
+    //     title: 'Processed Messages',
+    //     href: '/processed-messages',
+    //     icon: MessageSquare,
+    // },
      {
         title: 'Geospatial Voting Overview',
         href: '/mapping',
@@ -51,7 +51,7 @@ const mainNavItems: NavItem[] = [
 
 const footerNavItems: NavItem[] = [
     {
-        title: 'Risk Assessment Engine',
+        title: 'AI Assessment Engine',
         href: '/assessments',
         icon: BookOpen,
     },
@@ -66,11 +66,11 @@ const footerNavItems: NavItem[] = [
         href: '/survey-settings',
         icon: ListIcon,
     },
-    {
-        title: 'Incident Watermarks',
-        href: '/incidentwatermarks',
-        icon: FileText,
-    },
+    // {
+    //     title: 'Incident Watermarks',
+    //     href: '/incidentwatermarks',
+    //     icon: FileText,
+    // },
 ];
 </script>
 

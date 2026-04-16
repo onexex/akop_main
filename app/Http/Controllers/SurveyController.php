@@ -63,4 +63,15 @@ class SurveyController extends Controller
 
         return response()->json($barangays);
     }
+
+    public function store(Request $request)
+    {
+        SurveyLog::create([
+            'caption' => $request->caption,
+            'remarks' => $request->remarks,
+            'address_tag' => $request->address_tag,
+        ]);
+        
+        return redirect()->back()->with('success', 'Successfully added survey');
+    }
 }

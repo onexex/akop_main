@@ -25,7 +25,7 @@
                                 class="sticky top-0 z-10 bg-muted/90 shadow-sm backdrop-blur-md"
                             >
                                 <TableRow>
-                                    <TableHead>Code</TableHead>
+                                    <TableHead>Caption</TableHead>
                                     <TableHead class="font-semibold"
                                         >Description</TableHead
                                     >
@@ -82,9 +82,8 @@
                                             <span
                                                 class="truncate font-semibold tracking-tight text-foreground"
                                             >
-                                                {{
-                                                    survey.address_property
-                                                        ?.city_municipality
+                                               {{ 
+                                                `${survey.address_property?.barangay || ''}, ${survey.address_property?.city_municipality || ''}, ${survey.address_property?.province || ''}` 
                                                 }}
                                             </span>
                                         </div>
@@ -123,8 +122,8 @@
                 <div class="gird grid-cols-1 px-4">
                     <Input
                         v-model="form.caption"
-                        label="Code"
-                        placeholder="Code"
+                        label="Tittle"
+                        placeholder="Title"
                         :error="form.errors.caption"
                         class="mb-2"
                     />
@@ -141,9 +140,14 @@
                         :options="provinceOptions"
                         placeholder="Piliin ang Probinsya"
                         @change="fetchCities"
-                        class="mb-2"
-                       
+                        class="mb-2 mt-2"
                     />
+
+                    <div v-if="form.errors.city_tag" class="text-red-500 text-xs mt-1">
+                        {{ form.errors.city_tag }}
+                    </div>
+
+                    
                       <!-- @change="cityOptions = provinceOptions.find((option) => option.value === form.address_tag)?.cities || []" -->
                     <CustomDropDown
                         label="Select City/Municipality"
@@ -154,14 +158,28 @@
                          class="mb-2"
                          @change="fetchBarangays"
                     />
+                    <div v-if="form.errors.city_tag" class="text-red-500 text-xs mt-1">
+                        {{ form.errors.city_tag }}
+                    </div>
 
-                    <CustomDropDown 
+                    <!-- <CustomDropDown 
                         label="Barangay"
                         v-model="form.brgy_tag" 
                         :options="brgyOptions" 
                         :disabled="brgyOptions.length === 0"
                         placeholder="Piliin ang Barangay"
+                    /> -->
+
+                    <CustomDropDown 
+                        label="Barangay"
+                        v-model="form.brgy_tag" 
+                        :options="brgyOptions" 
+                        :disabled="!form.city_tag" 
+                        :placeholder="!form.city_tag ? 'Select City first' : 'Select Barangay'"
                     />
+                    <div v-if="form.errors.brgy_tag" class="text-red-500 text-xs mt-1">
+                        {{ form.errors.brgy_tag }}
+                    </div>
 
                 </div>
                 <DialogFooter class="border-t bg-muted/20 px-6 py-4">
@@ -254,44 +272,53 @@
         form.dialogOpen = true;
         form.caption = '';
         form.remarks = '';
+        form.brgy_tag = '';
+        
         form.address_tag = '';
     };
 
     const submit = () => {
-        form.errors = {};
-        if (form.caption == '') {
-            form.errors = {
-                caption: 'Please input caption',
-            };
-            return;
+        
+        form.clearErrors();
+ 
+        let hasError = false;
+
+        if (!form.caption) {
+            form.setError('caption', 'Please input caption');
+            hasError = true;
         }
-        if (form.remarks == '') {
-            form.errors = {
-                remarks: 'Please input remarks',
-            };
-            return;
+        if (!form.remarks) {
+            form.setError('remarks', 'Please input remarks');
+            hasError = true;
+        }
+        if (!form.address_tag) {
+            form.setError('address_tag', 'Please select a location');
+            hasError = true;
+        }
+         if (!form.city_tag) {
+            form.setError('city_tag', 'Please select a city');
+            hasError = true;
+        }
+        if (!form.brgy_tag) {
+            form.setError('brgy_tag', 'Please select a barangay');
+            hasError = true;
         }
 
-        if (form.address_tag == '') {
-            form.errors = {
-                address_tag: 'Please input address tag',
-            };
-            return;
-        }
+        if (hasError) return;
 
-        if (form.id == 0) {
-            form.post('/classifications', {
-                onSuccess: () => {
-                    form.reset();
-                },
-            });
-        } else {
-            form.put(`/classifications/${form.id}`, {
-                onSuccess: () => {
-                    form.reset();
-                },
-            });
-        }
+        const method = form.id === 0 ? 'post' : 'put';
+        const url = form.id === 0 ? '/survey-settings' : `/survey-settings/${form.id}`;
+
+        form.submit(method, url, {
+            onSuccess: () => {
+                form.reset();
+                // Pwede ka mag-add ng toast notification dito para sa Akop Member app mo
+            },
+            onError: (errors) => {
+                console.log("Server validation failed:", errors);
+            },
+            preserveScroll: true,
+        });
     };
 
     const editClassification = (item: {
