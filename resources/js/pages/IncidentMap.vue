@@ -23,11 +23,28 @@
                             
                             <div class="space-y-3">
                                 <div>
-                                    <label class="text-[10px] font-bold text-slate-500 uppercase">Province</label>
+                                    <!-- <label class="text-[10px] font-bold text-slate-500 uppercase">Province</label>
                                     <select v-model="filters.province" @change="handleProvinceChange" class="filter-select w-full rounded-lg border-slate-200 text-xs font-bold">
                                         <option value="">All Provinces</option>
                                         <option v-for="p in availableProvinces" :key="p" :value="p">{{ p }}</option>
-                                    </select>
+                                    </select> -->
+                                    <FilterSelect 
+                                        label="Provinces"
+                                        v-model="filters.province"
+                                        :options="availableProvinces"
+                                        placeholder="All  "
+                                        @change="handleProvinceChange"
+                                    />
+                                </div>
+
+                                <div>
+                                    <CustomDropDown 
+                                        label="Gender"
+                                        v-model="filters.gender"
+                                        :options="genderOptions"
+                                        placeholder="All Genders"
+                                        @change="handleGenderChange"
+                                    />
                                 </div>
 
                                 <div v-if="filters.province">
@@ -36,6 +53,16 @@
                                         <option value="">All Cities</option>
                                         <option v-for="c in availableCities" :key="c" :value="c">{{ c }}</option>
                                     </select>
+                                </div>
+
+                                <div v-if="filters.province">
+                                    <FilterSelect 
+                                        label="City / Municipality"
+                                        v-model="filters.city"
+                                        :options="availableCities"
+                                        placeholder="All Cities"
+                                        @change="applyFilters"
+                                    />
                                 </div>
                             </div>
 
@@ -57,7 +84,7 @@
                                         :key="level"
                                         @click="setAdminLevel(level)"
                                         :class="['flex-1 rounded-lg py-2 text-[10px] font-bold uppercase transition-all', 
-                                        currentAdminLevel === level ? 'bg-primary text-white shadow-md' : 'text-slate-500 hover:bg-white']">
+                                        currentAdminLevel === level ? 'bg-primary text-black shadow-md' : 'text-slate-500 hover:bg-white']">
                                         {{ level === 'city_municipality' ? 'City' : level === 'barangay' ? 'Brgy' : 'Prov' }}
                                     </button>
                                 </div>
@@ -106,15 +133,25 @@ import { defineComponent, onMounted, ref, reactive, computed } from 'vue';
 import * as L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet.heat';
+import FilterSelect from '@/components/CustomDropDown.vue';
+import CustomDropDown from '@/components/CustomDropDown.vue';
+
 
 export default defineComponent({
     name: 'MapView',
-    components: { AppLayout, Head },
+    components: { AppLayout, Head, FilterSelect,CustomDropDown },
     setup() {
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Intelligence', href: '/mapping' }, 
         { title: 'Map', href: '/mapping' }
     ];
+
+    const genderOptions = ['Male', 'Female']; // Ang listahan ng items
+
+    const handleGenderChange = (val: string) => {
+        console.log("Selected Gender:", val);
+        // Dito mo ilalagay ang logic para mag-filter ng data base sa gender
+    };
     
     const isMapLoading = ref(true);
     const isSidebarCollapsed = ref(false);
@@ -124,7 +161,7 @@ export default defineComponent({
     const isHeatmapEnabled = ref(false);
     const searchQuery = ref('');
     const searchResults = ref<any[]>([]);
-    const filters = reactive({ province: '', city: '' });
+    const filters = reactive({ province: '', city: '',gender:'' });
 
     let map: L.Map;
     let labelLayer: L.LayerGroup;
@@ -392,7 +429,7 @@ const updateLabels = () => {
     return { 
         breadcrumbs, isMapLoading, isSidebarCollapsed, currentAdminLevel,
         filters, availableProvinces, availableCities, isHeatmapEnabled,
-        searchQuery, searchResults,
+        searchQuery, searchResults,genderOptions,handleGenderChange,
         setAdminLevel, handleProvinceChange, applyFilters, toggleHeatmap, handleSearch, jumpToLocation
     };
 }

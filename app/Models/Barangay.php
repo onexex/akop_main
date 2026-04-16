@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Barangay extends Model
 {
+    protected $table = 'address_properties';
     protected $fillable = [
         'region',
         'psgc_region',

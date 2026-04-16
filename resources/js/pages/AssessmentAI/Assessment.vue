@@ -1,16 +1,19 @@
 <script setup>
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Head } from '@inertiajs/vue3';
-import { ref, computed } from 'vue';
-import ollama from 'ollama';
+import { ref } from 'vue';
+import Textarea from '@/components/ui/textarea/Textarea.vue';
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const question = ref('');
-const feedback = ref(''); 
 const riskData = ref([]); 
 const loading = ref(false);
-const MODEL_NAME = 'granite3.2:8b';
 
-// Scoring Logic (Matches the UI)
+// 2. Initialize Gemini (Gamit ang iyong AI Plus key)
+const genAI = new GoogleGenerativeAI("AIzaSyArL0LY53ScOVR_Ob9ai_XtbJ6sQ2KENDk");
+
+
+// Scoring Logic (Maintained from your original code)
 const calculateScore = (severity, likelihood) => {
     const map = { 'high': 3, 'medium': 2, 'low': 1, 'moderate': 2, 'critical': 3 };
     const s = map[severity.toLowerCase()] || 1;
@@ -44,10 +47,8 @@ const parseTable = (text) => {
     }).filter(r => r.identified.toLowerCase() !== 'risk identified');
 };
 
-// RESTORED: Updated Export Function
 const exportToCSV = () => {
     if (riskData.value.length === 0) return;
-    
     const headers = ["Risk", "Score", "Rating", "Severity", "Likelihood", "Mitigation", "Recommendation", "Monitor"];
     const csvRows = [
         headers.join(','),
@@ -55,7 +56,6 @@ const exportToCSV = () => {
             `"${r.identified}","${r.score.val}","${r.score.label}","${r.severity}","${r.likelihood}","${r.mitigation}","${r.recommendation}","${r.monitor}"`
         )
     ];
-
     const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
@@ -70,27 +70,55 @@ const getSeverityClass = (sev) => {
     return 'bg-emerald-100 text-emerald-700 border-emerald-200';
 };
 
+// 3. Updated function gamit ang Gemini API
 async function runRiskAssessment() {
+    if (!question.value) return;
+    
     loading.value = true;
-    feedback.value = '';
     riskData.value = [];
+    
     try {
-        const response = await ollama.chat({
-            model: MODEL_NAME,
-            messages: [
-                { 
-                    role: 'system', 
-                    content: `You are a Senior Risk Officer. Output a Markdown table.
-                    Headers: | Risk Identified | Severity | Likelihood | Mitigation Strategy | Strategic Recommendation | What to Monitor |
-                    Rules: Use labels (High, Medium, Low). Respond ONLY with the table.`
-                },
-                { role: 'user', content: question.value }
-            ]
+        // Gumamit ng gemini-1.5-flash para sa mabilis na result
+        const model = genAI.getGenerativeModel({ 
+             model: "gemini-2.5-flash",
+            systemInstruction: `You are a Senior Risk Officer. 
+            TASK: Conduct a risk audit based on the user's scenario.
+            FORMAT: Output ONLY a Markdown table.
+            CRITICAL RULES:
+            1. DO NOT include introductory text, headers, or concluding remarks.
+            2. Use ONLY 'High', 'Medium', or 'Low' for Severity and Likelihood.
+            3. BEGIN OUTPUT IMMEDIATELY with the table header.`
         });
-        feedback.value = response.message.content;
-        riskData.value = parseTable(feedback.value);
+
+        const prompt = `As a Senior Risk Officer, generate the Risk Audit Table for this scenario:
+        
+        SCENARIO: ${question.value}
+
+        | Risk Identified | Severity | Likelihood | Mitigation Strategy | Strategic Recommendation | What to Monitor |
+        | :--- | :--- | :--- | :--- | :--- | :--- |`;
+
+        const result = await model.generateContent({
+            contents: [{ role: 'user', parts: [{ text: prompt }] }],
+            generationConfig: {
+                temperature: 0,
+                maxOutputTokens: 2000,
+            },
+        });
+
+        const rawContent = result.response.text();
+        
+        // Extraction logic (katulad ng dati mong code)
+        const tableStartIndex = rawContent.indexOf('|');
+        if (tableStartIndex !== -1) {
+            const tableContent = rawContent.substring(tableStartIndex).trim();
+            riskData.value = parseTable(tableContent);
+        } else {
+            console.error("No table found in Gemini response");
+        }
+        
     } catch (error) {
-        alert("Ollama connection failed.");
+        console.error("Gemini Error:", error);
+        alert("Gemini connection failed. Please check your internet or API Key.");
     } finally {
         loading.value = false;
     }
@@ -105,7 +133,7 @@ async function runRiskAssessment() {
             <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-6">
                 <div>
                     <h1 class="text-2xl font-bold text-slate-900">Intelligence Assessment Engine</h1>
-                    <p class="text-slate-500 text-sm">Automated scoring and strategic recommendations using local Granite 3.2 LLM</p>
+                    <p class="text-slate-500 text-sm">Automated scoring and strategic recommendations using Gemini 1.5 Flash</p>
                 </div>
                 <div v-if="riskData.length" class="flex items-center gap-3">
                     <button @click="exportToCSV" class="inline-flex items-center px-4 py-2 text-sm font-semibold text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition shadow-sm">
@@ -119,14 +147,18 @@ async function runRiskAssessment() {
                 <div class="xl:col-span-1 space-y-6">
                     <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
                         <label class="block text-xs font-bold uppercase text-slate-500 mb-3 tracking-widest">Incident/Scenario</label>
-                        <textarea v-model="question" class="w-full p-4 border-slate-200 rounded-lg h-64 text-sm focus:ring-2 focus:ring-blue-500" placeholder="Enter scenario..."></textarea>
+                        <!-- <Textarea v-model="question" class="w-full p-4 border-slate-200 rounded-lg h-64 text-sm focus:ring-2 focus:ring-blue-500" placeholder="Enter scenario..."></Textarea> -->
+                        <Textarea 
+    v-model="question" 
+    placeholder="Enter scenario here..." 
+    class="h-64"
+    label="Incident/Scenario"
+/>
                         <button @click="runRiskAssessment" :disabled="loading || !question" class="w-full mt-4 flex items-center justify-center gap-3 px-6 py-3 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition shadow-md">
                             <span v-if="loading" class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
                             {{ loading ? 'Analyzing...' : 'Generate Risk Report' }}
                         </button>
                     </div>
-
-                    
 
                     <div class="bg-white p-4 rounded-lg border border-slate-200">
                         <h4 class="text-xs font-bold text-slate-700 uppercase mb-3">Score Matrix (S × L)</h4>

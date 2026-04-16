@@ -23,11 +23,19 @@
                             
                             <div class="space-y-3">
                                 <div>
-                                    <label class="text-[10px] font-bold text-slate-500 uppercase">Province</label>
-                                    <select v-model="filters.province" @change="handleProvinceChange" class="filter-select w-full rounded-lg border-slate-200 text-xs font-bold">
+                                    <!-- <label class="text-[10px] font-bold text-slate-500 uppercase">Province</label>
+                                    <DropdownMenu v-model="filters.province" @change="handleProvinceChange" class="filter-select w-full rounded-lg border-slate-200 text-xs font-bold">
                                         <option value="">All Provinces</option>
                                         <option v-for="p in availableProvinces" :key="p" :value="p">{{ p }}</option>
-                                    </select>
+                                    </DropdownMenu> -->
+
+                                    <FilterSelect 
+                                        label="Provinces"
+                                        v-model="filters.province"
+                                        :options="availableProvinces"
+                                        placeholder="All  "
+                                        @change="handleProvinceChange"
+                                    />
                                 </div>
 
                                 <div v-if="filters.province">
@@ -106,6 +114,13 @@ import { defineComponent, onMounted, ref, reactive, computed } from 'vue';
 import * as L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet.heat';
+// import { 
+//     DropdownMenu, 
+//     DropdownMenuTrigger, 
+//     DropdownMenuContent, 
+//     DropdownMenuItem 
+// } from '@/components/ui/dropdown-menu';
+import FilterSelect from '@/components/FilterSelect.vue';
 
 export default defineComponent({
     name: 'MapView',

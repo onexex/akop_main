@@ -1,17 +1,18 @@
 <?php
 
-use Inertia\Inertia;
+use App\Http\Controllers\AssesmentCtrl;
+ 
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\IncidentController;
+use App\Http\Controllers\IncidentWatermarkController;
+use App\Http\Controllers\SMS\SmsController;
+use App\Http\Controllers\SurveyController;
+use App\Http\Controllers\UserManagementController;
 use App\Models\SmsMessage;
-use Laravel\Fortify\Features;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\AssesmentCtrl;
-use App\Http\Controllers\SMS\SmsController;
-use App\Http\Controllers\IncidentController;
-use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\ClassificationController;
-use App\Http\Controllers\UserManagementController;
-use App\Http\Controllers\IncidentWatermarkController;
+use Inertia\Inertia;
+use Laravel\Fortify\Features;
 
 Route::get('/', function () {
     if (Auth::check()) {
@@ -46,15 +47,15 @@ Route::middleware('auth', 'verified')->group(function () {
     Route::get('/processed-messages', [IncidentController::class, 'processedMessages'])->name('processed-messages.index');
     Route::get('/processed-messages/export', [IncidentController::class, 'export'])->name('processed-messages.export');
 
-    Route::resource('classifications', ClassificationController::class);
+    Route::get('/survey-settings/fetch-cities', [SurveyController::class, 'fetchCities'])->name('surveys.fetchCities');
+    Route::get('/survey-settings/fetch-barangays', [SurveyController::class, 'fetchBarangays']);
+    Route::resource('survey-settings', SurveyController::class);
+   
     Route::get('/processed-sms-get-reference', [SmsController::class, 'getReference'])->name('sms.reference');
     Route::get('/download-incident/{incident}', [IncidentController::class, 'download'])->name('incident.download');
 
     Route::resource('incidentwatermarks', IncidentWatermarkController::class);
-});
-
-Route::middleware('auth', 'verified')->group(function () {
-    
+ 
     Route::get('/users', [UserManagementController::class, 'index'])->name('users.index');
     Route::post('/users/store', [UserManagementController::class, 'store'])->name('users.store');
     Route::put('/users/update/{user}', [UserManagementController::class, 'update'])->name('users.update');

@@ -62,8 +62,8 @@ const footerNavItems: NavItem[] = [
         icon: UserRoundCog,
     },
      {
-        title: 'Classifications',
-        href: '/classifications',
+        title: 'Survey Settings',
+        href: '/survey-settings',
         icon: ListIcon,
     },
     {

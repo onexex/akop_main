@@ -7,10 +7,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class SurveyLog extends Model
 {
-    // Tukuyin ang table name kung hindi ito sumusunod sa plural naming convention
     protected $table = 'survey_logs';
-
-    // Payagan ang mass assignment para sa mga fields na ito
     protected $fillable = [
         'caption',
         'remarks',
@@ -20,11 +17,14 @@ class SurveyLog extends Model
         'sync_status',
     ];
 
-    /**
-     * Relationship: Isang SurveyLog ay may maraming Assigned Users.
-     */
     public function assignedUsers(): HasMany
     {
         return $this->hasMany(SurveyAssignedUser::class, 'survey_log_id');
+    }
+     
+   public function addressProperty()
+    { 
+       
+        return $this->belongsTo(Barangay::class, 'address_tag', 'id'); 
     }
 }
