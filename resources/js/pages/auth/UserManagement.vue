@@ -1,12 +1,9 @@
 <script setup>
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Head, router, useForm, Link } from '@inertiajs/vue3';  
-
 import debounce from 'lodash/debounce';
 import { ref, watch } from 'vue';
 import Swal from 'sweetalert2';
-
- 
 
 // Shadcn Imports
 import { Button } from '@/components/ui/button';
@@ -21,7 +18,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge'; // Added Badge
+import { Badge } from '@/components/ui/badge';
 import {
     Table,
     TableBody,
@@ -29,12 +26,13 @@ import {
     TableHead,
     TableHeader,
     TableRow,
-} from '@/components/ui/table'; // Added Table
+} from '@/components/ui/table';
 
 const props = defineProps({ 
     users: Object, 
     filters: Object,
-    breadcrumbs: Array // Ensure this is handled
+    breadcrumbs: Array,
+    roles: Array // List of roles from Backend
 });
 
 // Search Logic
@@ -53,12 +51,13 @@ const form = useForm({
     email: '',
     password: '',
     password_confirmation: '',
+    role: '', // Added role
 });
 
 const submit = () => {
     form.post('/users/store', {
         onSuccess: () => {
-            showCreateModal.value = false; // FIXED: .value instead of .ref
+            showCreateModal.value = false;
             form.reset();
         },
     });
@@ -72,12 +71,15 @@ const editForm = useForm({
     email: '',
     password: '',
     password_confirmation: '',
+    role: '', // Added role
 });
 
 const openEditModal = (user) => {
     editingUser.value = user;
     editForm.name = user.name;
     editForm.email = user.email;
+    // Spatie returns roles as an array, we get the first one
+    editForm.role = user.roles.length > 0 ? user.roles[0].name : '';
     editForm.password = '';
     editForm.password_confirmation = '';
     showEditModal.value = true;
@@ -98,33 +100,19 @@ const deleteUser = (id) => {
         text: "This action cannot be undone!",
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonColor: '#ef4444', // Tailwind red-500
-        cancelButtonColor: '#6b7280',  // Tailwind gray-500
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#6b7280',
         confirmButtonText: 'Yes, delete it!',
-        cancelButtonText: 'No, cancel'
     }).then((result) => {
         if (result.isConfirmed) {
-            // Trigger Inertia delete
             router.delete(`/users/delete/${id}`, {
-                // onSuccess: () => {
-                //     Swal.fire(
-                //         'Deleted!',
-                //         'The user has been removed.',
-                //         'success'
-                //     );
-                // },
                 onError: () => {
-                    Swal.fire(
-                        'Error!',
-                        'Something went wrong.',
-                        'error'
-                    );
+                    Swal.fire('Error!', 'Something went wrong.', 'error');
                 }
             });
         }
     });
 };
-
 </script>
 
 <template>
@@ -133,7 +121,7 @@ const deleteUser = (id) => {
         <div class="p-6 space-y-6">
             <div>
                 <h1 class="text-2xl font-bold tracking-tight">User Management</h1>
-                <p class="text-muted-foreground">Manage your system users and security settings.</p>
+                <p class="text-muted-foreground">Manage your system users and assign security roles.</p>
             </div>
 
             <div class="flex items-center justify-between gap-4">
@@ -147,23 +135,33 @@ const deleteUser = (id) => {
 
                 <Dialog v-model:open="showCreateModal">
                     <DialogTrigger as-child>
-                        <Button size="sm">+ Add User</Button>
+                        <Button size="sm" class="bg-black text-white hover:bg-slate-800">+ Add User</Button>
                     </DialogTrigger>
                     <DialogContent class="sm:max-w-[425px]">
                         <DialogHeader>
                             <DialogTitle>Create New User</DialogTitle>
-                            <DialogDescription>Fill in the details to add a new user.</DialogDescription>
+                            <DialogDescription>Add a new member and assign their role.</DialogDescription>
                         </DialogHeader>
                         <form @submit.prevent="submit" class="grid gap-4 py-4">
                             <div class="grid gap-2">
                                 <Label for="name">Full Name</Label>
-                                <Input id="name" v-model="form.name" placeholder="John Doe" />
+                                <Input id="name" v-model="form.name" />
                                 <div v-if="form.errors.name" class="text-xs text-red-500">{{ form.errors.name }}</div>
                             </div>
                             <div class="grid gap-2">
                                 <Label for="email">Email</Label>
-                                <Input id="email" type="email" v-model="form.email" placeholder="john@example.com" />
+                                <Input id="email" type="email" v-model="form.email" />
                                 <div v-if="form.errors.email" class="text-xs text-red-500">{{ form.errors.email }}</div>
+                            </div>
+                            <div class="grid gap-2">
+                                <Label for="role">Assigned Role</Label>
+                                <select v-model="form.role" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
+                                    <option value="" disabled>Select a role</option>
+                                    <option v-for="role in roles" :key="role.id" :value="role.name">
+                                        {{ role.name }}
+                                    </option>
+                                </select>
+                                <div v-if="form.errors.role" class="text-xs text-red-500">{{ form.errors.role }}</div>
                             </div>
                             <div class="grid gap-2">
                                 <Label for="password">Password</Label>
@@ -175,18 +173,19 @@ const deleteUser = (id) => {
                                 <Input id="password_confirmation" type="password" v-model="form.password_confirmation" />
                             </div>
                             <DialogFooter>
-                                <Button type="submit" :disabled="form.processing">Save User</Button>
+                                <Button type="submit" :disabled="form.processing">Create User</Button>
                             </DialogFooter>
                         </form>
                     </DialogContent>
                 </Dialog>
             </div>
 
-            <div class="rounded-md border bg-card p-3">
+            <div class="rounded-md border bg-card p-3 shadow-sm">
                 <Table>
                     <TableHeader>
                         <TableRow>
                             <TableHead>User</TableHead>
+                            <TableHead>Role</TableHead>
                             <TableHead>Status</TableHead>
                             <TableHead>Joined</TableHead>
                             <TableHead class="text-right">Actions</TableHead>
@@ -199,7 +198,13 @@ const deleteUser = (id) => {
                                 <div class="text-xs text-muted-foreground">{{ user.email }}</div>
                             </TableCell>
                             <TableCell>
-                                <Badge v-if="user.is_verified" variant="secondary" class="bg-green-100 text-green-700">Verified</Badge>
+                                <Badge v-for="role in user.roles" :key="role.id" variant="outline" class="capitalize">
+                                    {{ role.name }}
+                                </Badge>
+                                <span v-if="user.roles.length === 0" class="text-xs text-muted-foreground italic">No role</span>
+                            </TableCell>
+                            <TableCell>
+                                <Badge v-if="user.email_verified_at" variant="secondary" class="bg-green-100 text-green-700">Verified</Badge>
                                 <Badge v-else variant="outline">Unverified</Badge>
                             </TableCell>
                             <TableCell class="text-sm text-muted-foreground">{{ user.created_at }}</TableCell>
@@ -207,9 +212,6 @@ const deleteUser = (id) => {
                                 <Button variant="ghost" size="sm" @click="openEditModal(user)">Edit</Button>
                                 <Button variant="ghost" size="sm" class="text-red-600 hover:text-red-700" @click="deleteUser(user.id)">Delete</Button>
                             </TableCell>
-                        </TableRow>
-                        <TableRow v-if="users.data.length === 0">
-                            <TableCell colspan="4" class="h-24 text-center text-muted-foreground">No users found.</TableCell>
                         </TableRow>
                     </TableBody>
                 </Table>
@@ -222,7 +224,7 @@ const deleteUser = (id) => {
                     :href="link.url || '#'"
                     v-html="link.label"
                     class="px-3 py-1 text-sm border rounded-md"
-                    :class="{ 'bg-primary text-white': link.active, 'text-muted-foreground': !link.url }"
+                    :class="{ 'bg-black text-white': link.active, 'text-muted-foreground opacity-50': !link.url }"
                 />
             </div>
 
@@ -239,6 +241,14 @@ const deleteUser = (id) => {
                         <div class="grid gap-2">
                             <Label>Email</Label>
                             <Input type="email" v-model="editForm.email" />
+                        </div>
+                        <div class="grid gap-2">
+                            <Label>Role</Label>
+                            <select v-model="editForm.role" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
+                                <option v-for="role in roles" :key="role.id" :value="role.name">
+                                    {{ role.name }}
+                                </option>
+                            </select>
                         </div>
                         <div class="grid gap-2">
                             <Label>New Password (Optional)</Label>

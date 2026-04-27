@@ -1,8 +1,10 @@
 <script setup lang="ts">
+import { computed } from 'vue'; // Idagdag ito
+import { usePage, Link } from '@inertiajs/vue3'; // Idagdag ang usePage
 import NavFooter from '@/components/NavFooter.vue';
 import NavMain from '@/components/NavMain.vue';
 import NavUser from '@/components/NavUser.vue';
-import {
+import { 
     Sidebar,
     SidebarContent,
     SidebarFooter,
@@ -11,42 +13,54 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,    
 } from '@/components/ui/sidebar';
-// import dashboard from '@/routes';
-// import { sms } from '@/routes';
-import { type NavItem } from '@/types';
-import { Link } from '@inertiajs/vue3';
-import { BookOpen, FileText, Folder, LayoutGrid, ListIcon, Minus } from 'lucide-vue-next';
+import { 
+    BookOpen, LayoutGrid, ListIcon, ShieldCheckIcon, 
+    MapPinMinus, UserRoundCog 
+} from 'lucide-vue-next';
 import AppLogo from './AppLogo.vue';
-import { MessageSquare } from 'lucide-vue-next';
-import { MapPinMinus } from 'lucide-vue-next';
-import { UserRoundCog } from 'lucide-vue-next';
-import { ChartNoAxesCombined } from 'lucide-vue-next';
+
+interface NavItem {
+    title: string;
+    href: string;
+    icon: any;
+    // Idagdag ito:
+    permissions: string[];
+}
+
+interface User {
+    permissions?: string[];
+    // Add other user properties as needed
+}
+
+const page = usePage();
+
+// Helper function para sa permission check
+const can = (permissions?: string[]) => {
+    if (!permissions || permissions.length === 0) return true;
+    const user = page.props.auth.user as User;
+    const userPermissions = user.permissions ?? [];
+    return permissions.some(permission => userPermissions.includes(permission)) || userPermissions.includes('admin');
+};
 
 const mainNavItems: NavItem[] = [
     {
         title: 'Dashboard',
-        href: 'dashboard',
+        href: '/dashboard',  
         icon: LayoutGrid,
+        permissions: ['access main dashboard'],  
     },
-    //  {
-    //     title: 'Incoming Alerts',
-    //     href: '/sms',
-    //     icon: MessageSquare,
-    // },
-
-    //  {
-    //     title: 'Processed Messages',
-    //     href: '/processed-messages',
-    //     icon: MessageSquare,
-    // },
-     {
+    {
+        title: 'Request Dashboard',
+        href: '/cash-advances',  
+        icon: LayoutGrid,
+        permissions: ['access request dashboard'], 
+    },
+    {
         title: 'Geospatial Voting Overview',
         href: '/mapping',
         icon: MapPinMinus,
+        permissions: ['access geospatial'],  
     },
-   
-
-    
 ];
 
 const footerNavItems: NavItem[] = [
@@ -54,24 +68,34 @@ const footerNavItems: NavItem[] = [
         title: 'AI Assessment Engine',
         href: '/assessments',
         icon: BookOpen,
+        permissions: ['access ai assessment'],
     },
-    
-     {
+    {
+        title: 'Roles & Permissions',
+        href: '/permissions',
+        icon: ShieldCheckIcon,
+        permissions: ['access role management'],
+    },
+    {
         title: 'Users Management',
         href: '/users',
         icon: UserRoundCog,
+        permissions: ['access user management'],
     },
-     {
+    {
         title: 'Survey Settings',
         href: '/survey-settings',
         icon: ListIcon,
+        permissions: ['access survey'],
     },
-    // {
-    //     title: 'Incident Watermarks',
-    //     href: '/incidentwatermarks',
-    //     icon: FileText,
-    // },
 ];
+
+ 
+const filteredMainMav = computed(() => mainNavItems.filter(item => can(item.permissions)));
+const filteredFooterNav = computed(() => footerNavItems.filter(item => can(item.permissions)));
+
+console.log('User object:', page.props.auth.user);
+console.log('Raw Permissions:', (page.props.auth.user as User).permissions);
 </script>
 
 <template>
@@ -89,11 +113,11 @@ const footerNavItems: NavItem[] = [
         </SidebarHeader>
 
         <SidebarContent>
-            <NavMain :items="mainNavItems" />
+            <NavMain :items="filteredMainMav" />
         </SidebarContent>
 
         <SidebarFooter>
-            <NavFooter :items="footerNavItems" />
+            <NavFooter :items="filteredFooterNav" />
             <NavUser />
         </SidebarFooter>
     </Sidebar>

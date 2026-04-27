@@ -353,19 +353,19 @@
     };
 
     const fetchBarangays = async (cityId: any) => {
-    // 1. Hanapin ang label ng City mula sa cityOptions ref natin kanina
+   
     const selected = cityOptions.value.find((c: any) => c.value === cityId);
-    
-    if (selected) {
-        try {
-            const response = await axios.get('/survey-settings/fetch-barangays', {
-                params: { city_name: selected.label }
-            });
-            brgyOptions.value = response.data;
-            form.brgy_tag = ''; // I-reset ang brgy field sa form
-        } catch (error) {
-            console.error("Error fetching barangays:", error);
+        
+        if (selected) {
+            try {
+                const response = await axios.get('/survey-settings/fetch-barangays', {
+                    params: { city_name: selected.label }
+                });
+                brgyOptions.value = response.data;
+                form.brgy_tag = ''; // I-reset ang brgy field sa form
+            } catch (error) {
+                console.error("Error fetching barangays:", error);
+            }
         }
-    }
-};
+    };
 </script>

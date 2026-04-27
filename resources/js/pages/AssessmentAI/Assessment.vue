@@ -10,7 +10,7 @@ const riskData = ref([]);
 const loading = ref(false);
 
 // 2. Initialize Gemini (Gamit ang iyong AI Plus key)
-const genAI = new GoogleGenerativeAI("AIzaSyArL0LY53ScOVR_Ob9ai_XtbJ6sQ2KENDk");
+const genAI = new GoogleGenerativeAI("AQ.Ab8RN6K_HAjcWvz9IKxx2qKnVcjmILL5MLM5G3Sl1Kc9rwt1LQ");
 
 
 // Scoring Logic (Maintained from your original code)
