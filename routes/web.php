@@ -5,6 +5,7 @@ use App\Http\Controllers\CashAdvanceController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\IncidentController;
 use App\Http\Controllers\IncidentWatermarkController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\SMS\SmsController;
 use App\Http\Controllers\SurveyController;
@@ -86,6 +87,10 @@ Route::middleware('auth', 'verified')->group(function () {
 
     Route::put('/cash-advances/{cashAdvance}', [CashAdvanceController::class, 'update'])->name('cash-advance.update');
     Route::put('/cash-advance/{cashAdvance}/status', [CashAdvanceController::class, 'updateStatus']);
+
+    Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.read');
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.markAllAsRead');
 
     
 });

@@ -42,10 +42,18 @@ class HandleInertiaRequests extends Middleware
             ...parent::share($request),
             'name' => config('app.name'),
             'quote' => ['message' => trim($message), 'author' => trim($author)],
-           'auth' => [
+            'auth' => [
                 'user' => $request->user() ? array_merge($request->user()->toArray(), [
-                    
                     'permissions' => $request->user()->getAllPermissions()->pluck('name'),
+                    // IDADAGDAG NATIN DITO:
+                    'notifications' => \App\Models\CustomNotification::where('user_id', $request->user()->id)
+                                        ->where('is_read', false)
+                                        ->latest()
+                                        ->limit(10)
+                                        ->get(),
+                    'unread_notifications_count' => \App\Models\CustomNotification::where('user_id', $request->user()->id)
+                                        ->where('is_read', false)
+                                        ->count(),
                 ]) : null,
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',

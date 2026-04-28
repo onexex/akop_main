@@ -3,6 +3,7 @@ import { ref, computed, watch } from 'vue';
 import { useForm, Head } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Plus, Trash2, Save, Send, Calculator, Search, Calendar, Eye, Edit2, CheckCircle, XCircle } from 'lucide-vue-next';
+import NotificationBell from '@/components/NotificationBell.vue';
 import { usePage } from '@inertiajs/vue3';
 import Swal from 'sweetalert2';
 
@@ -24,6 +25,34 @@ const page = usePage();
 const can = (permission: string) => {
     const user = page.props.auth?.user as any; // Gamitin ang 'any' para mabilis o i-import ang User interface
     return user?.permissions?.includes(permission) ?? false;
+};
+
+// number to word formating
+const toWords = (num: number): string => {
+  if (num === 0) return 'ZERO PESOS ONLY';
+
+  const ones = ['', 'ONE', 'TWO', 'THREE', 'FOUR', 'FIVE', 'SIX', 'SEVEN', 'EIGHT', 'NINE', 'TEN', 'ELEVEN', 'TWELVE', 'THIRTEEN', 'FOURTEEN', 'FIFTEEN', 'SIXTEEN', 'SEVENTEEN', 'EIGHTEEN', 'NINETEEN'];
+  const tens = ['', '', 'TWENTY', 'THIRTY', 'FORTY', 'FIFTY', 'SIXTY', 'SEVENTY', 'EIGHTY', 'NINETY'];
+
+  const convert = (n: number): string => {
+    if (n < 20) return ones[n];
+    if (n < 100) return tens[Math.floor(n / 10)] + (n % 10 !== 0 ? ' ' + ones[n % 10] : '');
+    if (n < 1000) return ones[Math.floor(n / 100)] + ' HUNDRED' + (n % 100 !== 0 ? ' AND ' + convert(n % 100) : '');
+    if (n < 1000000) return convert(Math.floor(n / 1000)) + ' THOUSAND' + (n % 1000 !== 0 ? ' ' + convert(n % 1000) : '');
+    return convert(Math.floor(n / 1000000)) + ' MILLION' + (n % 1000000 !== 0 ? ' ' + convert(n % 1000000) : '');
+  };
+
+  // I-split ang Pesos at Cents
+  const pesos = Math.floor(num);
+  const cents = Math.round((num - pesos) * 100);
+
+  let result = convert(pesos) + ' PESOS';
+
+  if (cents > 0) {
+    result += ' AND ' + convert(cents) + ' CENTAVOS';
+  }
+
+  return (result.replace(/\s+/g, ' ') + ' ONLY').toUpperCase();
 };
 
 interface CAItem {
@@ -75,13 +104,14 @@ const openEditModal = (req: any) => {
 };
 
 const fillForm = (req: any) => {
-    form.date = req.date;
+    if (req.date) {
+        form.date = req.date.split('T')[0]; 
+    }
     form.district_office = req.district_office;
     form.purpose = req.purpose;
     form.beneficiaries = req.beneficiaries;
     form.amount_in_figure = req.amount_in_figure;
     form.amount_in_words = req.amount_in_words;
-    // Siguraduhing deep copy ang items para hindi ma-mutate ang original props
     form.items = JSON.parse(JSON.stringify(req.items));
 };
 
@@ -95,13 +125,33 @@ const removeItem = (index: number) => {
     if (form.items.length > 1) form.items.splice(index, 1);
 };
 
+// watch(() => form.items, (newItems) => {
+//     let grandTotal = 0;
+//     newItems.forEach((item) => {
+//         // Gumamit ng Number.parseFloat().toFixed(2) kung kailangan ng saktong cents
+//         item.total = (item.qty || 0) * (item.amount_peso || 0);
+//         grandTotal += item.total;
+//     });
+
+//     // Rounding to 2 decimal places para malinis ang cents
+//     form.amount_in_figure = parseFloat(grandTotal.toFixed(2));
+//     form.amount_in_words = toWords(form.amount_in_figure);
+// }, { deep: true });
+
 watch(() => form.items, (newItems) => {
     let grandTotal = 0;
     newItems.forEach((item) => {
-        item.total = (item.qty || 0) * (item.amount_peso || 0);
+        const qty = item.qty || 0;
+        const peso = item.amount_peso || 0;
+        const usd = (item.amount_usd > 0) ? item.amount_usd : 1;
+
+        item.total = parseFloat((qty * usd * peso).toFixed(2));
         grandTotal += item.total;
     });
-    form.amount_in_figure = grandTotal;
+
+    form.amount_in_figure = parseFloat(grandTotal.toFixed(2));
+    
+    form.amount_in_words = toWords(form.amount_in_figure);
 }, { deep: true });
 
 const submit = () => {
@@ -176,9 +226,8 @@ const filteredRequests = computed(() => {
 <template>
     <Head title="Request Cash Advance" />
     <AppLayout :breadcrumbs="breadcrumbs"> 
-        
+   
         <div class="w-full p-4 md:p-6 space-y-6">
-            
             <div class="flex flex-col md:flex-row justify-between items-center gap-4 bg-white p-4 rounded-xl shadow-sm border border-slate-200">
                 <div class="flex flex-1 w-full gap-2">
                     <div class="relative flex-1">
@@ -194,16 +243,13 @@ const filteredRequests = computed(() => {
                         <input v-model="endDate" type="date" class="pl-10 w-full border-slate-200 rounded-lg text-sm focus:ring-blue-500" />
                     </div>
                     <button 
-                v-if="startDate || endDate" 
-                @click="startDate = ''; endDate = ''" 
-                class="text-xs text-red-500 hover:underline font-bold ml-2"
-            >
-                Clear
-            </button>
+                        v-if="startDate || endDate" 
+                        @click="startDate = ''; endDate = ''" 
+                        class="text-xs text-red-500 hover:underline font-bold ml-2"
+                    >
+                        Clear
+                    </button>
                 </div>
-                <!-- <button @click="openCreateModal" class="w-full md:w-auto bg-green-600 text-white px-6 py-2.5 rounded-lg font-bold flex items-center justify-center gap-2 hover:bg-blue-700 transition">
-                    <Plus class="w-4 h-4" /> New Cash Advance Request
-                </button> -->
 
                 <button 
                     v-if="can('create request')"
@@ -222,6 +268,7 @@ const filteredRequests = computed(() => {
                             <tr>
                                 <th class="p-4">CA Number</th>
                                 <th class="p-4">Date</th>
+                                <th class="p-4">Requestor</th>
                                 <th class="p-4">Purpose / Beneficiaries</th>
                                 <th class="p-4 text-right">Grand Total</th>
                                 <th class="p-4 text-center">Status</th>
@@ -231,7 +278,14 @@ const filteredRequests = computed(() => {
                         <tbody class="divide-y divide-slate-100">
                             <tr v-for="req in filteredRequests" :key="req.id" class="hover:bg-slate-50 transition">
                                 <td class="p-4 font-mono font-bold text-blue-600">{{ req.ca_number }}</td>
-                                <td class="p-4 text-slate-500">{{ req.date }}</td>
+                                <!-- <td class="p-4 text-slate-500">{{ req.date }}</td> -->
+                                 <td class="p-4 text-slate-500">
+                                    {{ new Date(req.date).toISOString().split('T')[0] }}
+                                </td>
+                                <td class="p-4">
+                                    <div class="font-medium text-slate-900">{{ req.user.name }}</div>
+                                    <div class="text-xs text-slate-400">{{ req.user.email }}</div>
+                                </td>
                                 <td class="p-4">
                                     <div class="font-medium text-slate-900">{{ req.purpose }}</div>
                                     <div class="text-xs text-slate-400">{{ req.beneficiaries }}</div>
@@ -251,20 +305,23 @@ const filteredRequests = computed(() => {
                                 </td>
                                 <td class="p-4 text-right">
                                     <div class="flex justify-end gap-2">
+                                        <!-- view -->
                                         <button @click="openViewModal(req)" class="p-2 text-slate-400 hover:text-blue-600 border rounded-md transition" title="View">
                                             <Eye class="w-4 h-4" />
                                         </button>
 
+                                        <!-- fix and resubmit or edit -->
                                         <button 
                                             v-if="(req.status === 'pending' || req.status === 'disapproved_by_l1' || req.status === 'disapproved_by_l2') && can('edit request')" 
                                             @click="openEditModal(req)" 
-                                            class="p-2 text-slate-400 hover:text-green-600 border rounded-md transition flex items-center gap-1" 
+                                            class="p-2 text-red-400 hover:text-green-600 border rounded-md transition flex items-center gap-1" 
                                             :title="req.status.includes('disapproved') ? 'Fix & Resubmit' : 'Edit'"
                                         >
                                             <Edit2 class="w-4 h-4" />
                                             <span v-if="req.status.includes('disapproved')" class="text-[10px] font-bold">FIX</span>
                                         </button>
-
+                                        
+                                        <!-- level 1 approver sir ray -->
                                         <template v-if="req.status === 'pending' && can('approve request level 1')">
                                             <button 
                                                 @click="handleApprove(req, 'approved_by_l1')" 
@@ -284,6 +341,7 @@ const filteredRequests = computed(() => {
                                             </button>
                                         </template>
 
+                                        <!-- level 2 approver wedo -->
                                         <template v-if="req.status === 'approved_by_l1' && can('approve request level 2')">
                                             <button 
                                                 @click="handleApprove(req, 'approved_by_l2')" 
@@ -301,8 +359,9 @@ const filteredRequests = computed(() => {
                                                 <XCircle class="w-4 h-4" />
                                                 <!-- <span class="text-xs font-bold">Disapprove</span> -->
                                             </button>
-                                        </template>
+                                        </template>                               
 
+                                        <!-- release cash when approved by level 2 -->
                                         <button 
                                             v-if="req.status === 'approved_by_l2' && can('release request')" 
                                             @click="handleApprove(req, 'released')" 
@@ -363,7 +422,7 @@ const filteredRequests = computed(() => {
                             <form @submit.prevent="submit" class="p-6 md:p-8">
                                 <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
                                     <div class="space-y-1.5">
-                                        <label class="text-[11px] font-bold uppercase text-slate-500 tracking-wider">Date of Request</label>
+                                        <label class="text-[11px] font-bold uppercase text-slate-500 tracking-wider">Date of Request {{  form.date }}</label>
                                         <input v-model="form.date" type="date" class="w-full border-slate-200 rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-slate-50" required />
                                     </div>
                                     <div class="md:col-span-3 space-y-1.5">
@@ -434,7 +493,7 @@ const filteredRequests = computed(() => {
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-end bg-slate-900 p-6 md:p-8 rounded-2xl text-white">
                                     <div class="space-y-2">
                                         <label class="text-[10px] font-black uppercase text-slate-500 tracking-[0.1em]">Amount in Words</label>
-                                        <textarea v-model="form.amount_in_words" rows="2" class="w-full bg-white/5 border-white/10 rounded-xl italic text-sm text-white p-3 focus:border-blue-500 outline-none transition disabled:bg-slate-800/50" placeholder="e.g. Ten Thousand Pesos Only"></textarea>
+                                        <textarea v-model="form.amount_in_words" readonly rows="2" class="w-full bg-white/5 border-white/10 rounded-xl italic text-sm text-white p-3 focus:border-blue-500 outline-none transition disabled:bg-slate-800/50" placeholder="e.g. Ten Thousand Pesos Only"></textarea>
                                     </div>
 
                                     <div class="space-y-6">

@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/sidebar';
 import { 
     BookOpen, LayoutGrid, ListIcon, ShieldCheckIcon, 
-    MapPinMinus, UserRoundCog 
+    MapPinMinus, UserRoundCog ,Bell
 } from 'lucide-vue-next';
 import AppLogo from './AppLogo.vue';
 
@@ -60,6 +60,12 @@ const mainNavItems: NavItem[] = [
         href: '/mapping',
         icon: MapPinMinus,
         permissions: ['access geospatial'],  
+    },
+    {
+        title: 'Notifications',
+        href: '/notifications',
+        icon: Bell, // I-import ang Bell icon mula sa lucide-vue-next
+        permissions: ['view notifications'],
     },
 ];
 

@@ -1,9 +1,26 @@
 import { InertiaLinkProps } from '@inertiajs/vue3';
 import type { LucideIcon } from 'lucide-vue-next';
 
-export interface Auth {
-    user: User;
+export interface User {
+    id: number;
+    name: string;
+    email: string;
+    email_verified_at: string;
+    // IDAGDAG ANG MGA ITO:
+    permissions: string[]; // Kung ginagamit mo ang Spatie
+    notifications: CustomNotification[]; 
+    unread_notifications_count: number;
 }
+
+// Mag-define din tayo ng interface para sa Notification mismo
+export interface CustomNotification {
+    id: number;
+    user_id: number;
+    title: string;
+    message: string;
+    url: string | null;
+    is_read: boolean;
+    created_at: string;}
 
 export interface BreadcrumbItem {
     title: string;

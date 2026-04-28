@@ -55,4 +55,10 @@ class User extends Authenticatable
         'last_login_long' => 'float',
         ];
     }
+
+    public function customNotifications()
+    {
+         
+        return $this->hasMany(CustomNotification::class, 'user_id');
+    }
 }
